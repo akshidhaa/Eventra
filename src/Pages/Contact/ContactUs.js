@@ -1,0 +1,541 @@
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { User, Mail, Phone, FileText, MessageSquare } from "lucide-react";
+import {
+  FiStar,
+  FiMessageSquare,
+  FiUser,
+  FiMail,
+  FiCheckCircle,
+} from "react-icons/fi";
+
+// Toast Component
+const Toast = ({ message, type = "success", onClose }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50, scale: 0.3 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+      className={`fixed top-24 right-4 max-w-sm w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden ${
+        type === "success" ? "bg-green-500" : "bg-red-500"
+      }`}
+    >
+      <div className="p-4">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            {type === "success" ? (
+              <svg
+                className="h-6 w-6 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-6 w-6 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            )}
+          </div>
+          <div className="ml-3 w-0 flex-1 pt-0.5">
+            <p className="text-sm font-medium text-white">{message}</p>
+          </div>
+          <div className="ml-4 flex-shrink-0 flex">
+            <button
+              onClick={onClose}
+              className="bg-transparent inline-flex text-white hover:text-gray-200 focus:outline-none"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Floating Label Input Component
+const FloatingInput = ({
+  id,
+  label,
+  type = "text",
+  value,
+  onChange,
+  required = true,
+  error,
+  icon: Icon,
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  return (
+    <div className="relative mt-6">
+      {Icon && (
+        <Icon className="absolute left-3 top-4 text-gray-400 w-5 h-5 pointer-events-none" />
+      )}
+      <motion.label
+        htmlFor={id}
+        className={`absolute transition-all duration-300 ${
+          isFocused || value
+            ? "top-0 text-xs text-black dark:text-white font-medium"
+            : "top-4 text-sm text-gray-500 dark:text-gray-400"
+        } ${error ? "text-red-500 dark:text-red-400" : ""}`}
+        initial={false}
+        animate={{
+          y: isFocused || value ? -20 : 0,
+          scale: isFocused || value ? 0.85 : 1,
+          left: isFocused || value ? "0.75rem" : "2.5rem",
+          transformOrigin: "left",
+        }}
+      >
+        {label} {required && <span className="text-red-500">*</span>}
+      </motion.label>
+
+      <input
+        id={id}
+        name={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        className={`w-full py-3 pl-10 pr-4 border rounded-lg focus:ring-2 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+          error
+            ? "border-red-500 focus:ring-red-200"
+            : "border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-200 dark:focus:ring-indigo-900/50"
+        }`}
+      />
+      {error && (
+        <motion.p
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-red-500 dark:text-red-400 text-xs mt-1 ml-1"
+        >
+          {error}
+        </motion.p>
+      )}
+    </div>
+  );
+};
+
+// Contact Us Page Component
+
+const ContactUs = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+    phone: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+  const formRef = useRef(null);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const validateForm = () => {
+  const newErrors = {};
+
+  // Name validation
+  if (!formData.name.trim()) {
+    newErrors.name = "Name is required";
+  } else if (formData.name.trim().length < 2) {
+    newErrors.name = "Name must be at least 2 characters";
+  } else if (!/^[A-Za-z\s]+$/.test(formData.name)) {
+    newErrors.name = "Name should contain only letters";
+  }
+
+  // Email validation (unchanged)
+  if (!formData.email.trim()) {
+    newErrors.email = "Email is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    newErrors.email = "Please enter a valid email";
+  }
+
+  // Subject validation
+  if (!formData.subject.trim()) {
+    newErrors.subject = "Subject is required";
+  } else if (formData.subject.trim().length < 5) {
+    newErrors.subject = "Subject must be at least 5 characters";
+  } else if (!/[a-zA-Z]{2,}/.test(formData.subject)) {
+    newErrors.subject = "Please enter a meaningful subject";
+  }
+
+  // Message validation
+  if (!formData.message.trim()) {
+    newErrors.message = "Message is required";
+  } else if (formData.message.trim().length < 10) {
+    newErrors.message = "Message must be at least 10 characters";
+  }
+
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      // Shake animation for invalid form
+      formRef.current.classList.add("animate-shake");
+      setTimeout(() => {
+        formRef.current.classList.remove("animate-shake");
+      }, 500);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Show success toast
+      setToast({
+        message:
+          "Your message has been sent successfully! We'll get back to you soon.",
+        type: "success",
+      });
+
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+      });
+    } catch (error) {
+      setToast({
+        message: "There was an error sending your message. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+
+      // Auto-close toast after 5 seconds
+      setTimeout(() => {
+        setToast(null);
+      }, 5000);
+    }
+  };
+  const [isFocused, setIsFocused] = useState(false);
+  return (
+    <div className="pastel-grid-bg min-h-screen bg-white dark:bg-black flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="max-w-4xl w-full mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          // AOS Implementation on main card
+          data-aos="fade-up"
+          data-aos-duration="1000"
+          data-aos-once="true"
+          // UPDATED: Card background and border
+          className="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800"
+        >
+          <div className="md:flex">
+            <div
+              className="md:w-3/5 lg:w-2/5 bg-black text-white p-12 flex flex-col justify-between rounded-3xl shadow-xl backdrop-blur-lg"
+              data-aos="fade-right"
+              data-aos-duration="1000"
+              data-aos-anchor=".ContactUs"
+            >
+              <div>
+                <h2
+                  className="text-4xl font-extrabold mb-6 tracking-wide"
+                  style={{ fontFamily: '"Anton", sans-serif' }}
+                >
+                  Get in Touch
+                </h2>
+                <p className="mb-8 text-lg opacity-90 leading-relaxed">
+                  Questions about our events platform? We're here to help. Reach
+                  out and we'll respond promptly.
+                </p>
+
+                <div className="space-y-6">
+                  {/* Email */}
+                  <div
+                    className="flex items-center p-4 bg-white bg-opacity-10 rounded-2xl hover:bg-white hover:bg-opacity-20 transition duration-300 ease-in-out"
+                    data-aos="zoom-in"
+                    data-aos-delay="200"
+                  >
+                    <div className="bg-white bg-opacity-20 p-3 rounded-full mr-5 flex items-center justify-center">
+                      <svg
+                        className="w-7 h-7 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        ></path>
+                      </svg>
+                    </div>
+                    <div className="overflow-hidden break-words max-w-full">
+                      <p className="font-semibold text-white">Email Us</p>
+                      <p className="text-sm opacity-80 break-words max-w-full">
+                        sandeepvashishtha@outlook.in
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick Response */}
+                  <div
+                    className="flex items-center p-4 bg-white bg-opacity-10 rounded-2xl hover:bg-white hover:bg-opacity-20 transition duration-300 ease-in-out"
+                    data-aos="zoom-in"
+                    data-aos-delay="300"
+                  >
+                    <div className="bg-white bg-opacity-20 p-3 rounded-full mr-5 flex items-center justify-center">
+                      <FiMessageSquare className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="overflow-hidden max-w-full">
+                      <p className="font-semibold text-white">Quick Response</p>
+                      <p className="text-sm opacity-80">
+                        We aim to reply to all inquiries within 24 hours.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Multiple Channels */}
+                  <div
+                    className="flex items-center p-4 bg-white bg-opacity-10 rounded-2xl hover:bg-white hover:bg-opacity-20 transition duration-300 ease-in-out"
+                    data-aos="zoom-in"
+                    data-aos-delay="400"
+                  >
+                    <div className="bg-white bg-opacity-20 p-3 rounded-full mr-5 flex items-center justify-center">
+                      <FiStar className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="overflow-hidden max-w-full">
+                      <p className="font-semibold text-white">
+                        Multiple Channels
+                      </p>
+                      <p className="text-sm opacity-80">
+                        Reach us via email, phone, or the contact form.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="md:w-3/5 p-10"
+              // AOS Implementation for form
+              data-aos="fade-left"
+              data-aos-duration="1000"
+              data-aos-anchor=".ContactUs"
+            >
+              <div className="text-center mb-8">
+                <h2
+                  className="text-3xl font-extrabold text-gray-900 dark:text-gray-100"
+                  style={{ fontFamily: '"Anton", sans-serif' }}
+                >
+                  Send us a Message
+                </h2>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                  We typically respond within 24 hours
+                </p>
+              </div>
+
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                <FloatingInput
+                  id="name"
+                  label="Your Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  error={errors.name}
+                  icon={User}
+                />
+
+                <FloatingInput
+                  id="email"
+                  label="Email Address"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  error={errors.email}
+                  icon={Mail}
+                />
+
+                <FloatingInput
+                  id="subject"
+                  label="Subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  error={errors.subject}
+                  icon={FileText}
+                />
+
+                <div className="relative mt-6">
+                  <MessageSquare className="absolute left-3 top-4 text-gray-400 w-5 h-5 pointer-events-none" />
+                  <motion.label
+                    htmlFor="message"
+                    className={`absolute left-10 transition-all duration-300 ${
+                      isFocused || formData.message
+                        ? "top-0 text-xs text-black dark:text-white font-medium"
+                        : "top-4 text-sm text-gray-500 dark:text-gray-400"
+                    } ${
+                      errors.message ? "text-red-500 dark:text-red-400" : ""
+                    }`}
+                    initial={false}
+                    animate={{
+                      y: isFocused || formData.message ? -20 : 0,
+                      scale: isFocused || formData.message ? 0.85 : 1,
+                      left:
+                        isFocused || formData.message ? "0.75rem" : "2.5rem",
+                      transformOrigin: "left",
+                    }}
+                  >
+                    Your Message <span className="text-red-500">*</span>
+                  </motion.label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows="4"
+                    value={formData.message}
+                    onChange={handleChange}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    className={`w-full py-3 pl-10 pr-4 border rounded-lg focus:ring-2 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                      errors.message
+                        ? "border-red-500 focus:ring-red-200"
+                        : "border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-200 dark:focus:ring-indigo-900/50"
+                    }`}
+                  ></textarea>
+                  {errors.message && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-red-500 dark:text-red-400 text-xs mt-1 ml-1"
+                    >
+                      {errors.message}
+                    </motion.p>
+                  )}
+                </div>
+
+                <div>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-75 transition-all duration-300"
+                  >
+                    {isSubmitting ? (
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    ) : null}
+                    {isSubmitting ? "Sending..." : "Send Message"}
+                  </motion.button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <AnimatePresence>
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <style jsx>{`
+        @keyframes shake {
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          10%,
+          30%,
+          50%,
+          70%,
+          90% {
+            transform: translateX(-5px);
+          }
+          20%,
+          40%,
+          60%,
+          80% {
+            transform: translateX(5px);
+          }
+        }
+
+        .animate-shake {
+          animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default ContactUs;

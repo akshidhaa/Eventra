@@ -1,0 +1,17 @@
+.idea
+.vscode
+
+node_modules
+build
+
+# Secret Files - DO NOT COMMIT
+*.SECRETS.*
+*secrets*
+*.secret
+*.key
+.env
+.env.local
+.env.production
+
+/.metadata/
+backend/azure-environment-variables.json
